@@ -170,5 +170,5 @@ def static_files(filename):
     return send_from_directory(OUTPUT_DIR, filename)
 
 if __name__ == '__main__':
-    port = int(os.environ.get("PORT", 4000))  # Dynamically set port for Render
+    port = int(os.environ.get("PORT", 8080))  # Dynamically set port for Render
     app.run(host='0.0.0.0', port=port, debug=True)
