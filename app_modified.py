@@ -8,19 +8,23 @@ import tensorflow as tf
 import io
 import os
 from ultralytics import YOLO  # Import the correct YOLO model loader
+from dotenv import load_dotenv
+
+# Load environment variables from .env file
+load_dotenv()
 
 app = Flask(__name__)
 CORS(app)
 
 # Static folder for saving output images
-OUTPUT_DIR = os.path.join(os.getcwd(), "static")
+OUTPUT_DIR = os.path.join(os.getcwd(), "static")  # Local directory
 if not os.path.exists(OUTPUT_DIR):
-    os.makedirs(OUTPUT_DIR)
+    os.makedirs(OUTPUT_DIR, exist_ok=True)
 
 # Define the model paths and disease labels for different models
 MODEL_PATHS = {
-    "mango": r"Mango.keras",  # Path to mango model
-    "strawberry": r"C:\Drive E\me\UBUNTU\DenseNet_For_Strawberry\bestModels\130_384\best_model_fold_2.keras"  # Path to strawberry model
+    "mango": r"Models/Mango.keras",  # Path to mango model
+    "strawberry": r"Models/Strawberry.keras"  # Path to strawberry model
 }
 
 DISEASE_LABELS = {
@@ -47,7 +51,7 @@ for model_type, model_path in MODEL_PATHS.items():
         raise RuntimeError(f"Failed to load model for {model_type}: {e}")
 
 # Load YOLO model using the correct method (ultralytics package)
-yolo_model = YOLO(r'best.pt')  # Path to your YOLO model
+yolo_model = YOLO(r'Models/best.pt')  # Path to your YOLO model
 
 # List of valid fruit names (only mango and strawberry are valid)
 valid_fruits = ['mango', 'strawberry']
@@ -61,7 +65,7 @@ class_names = [
 
 @app.route('/')
 def index():
-    return render_template('index_modified.html')
+    return render_template('index.html')
 
 def predict_fruit_with_yolo(img):
     # Convert PIL Image to NumPy array for YOLO
@@ -147,20 +151,6 @@ def predict():
         predicted_label = disease_labels[predicted_class]
         disease_confidence = float(predictions[0][predicted_class]) * 100
 
-        # Mock bounding box (for illustration)
-        bbox_resized = [50, 50, 150, 150]
-        x_min = int(bbox_resized[0] * (original_width / input_size[0]))
-        y_min = int(bbox_resized[1] * (original_height / input_size[1]))
-        x_max = int(bbox_resized[2] * (original_width / input_size[0]))
-        y_max = int(bbox_resized[3] * (original_height / input_size[1]))
-        bbox_original = [x_min, y_min, x_max, y_max]
-
-        # Draw the bounding box and disease label
-        draw = ImageDraw.Draw(img)
-        draw.rectangle(bbox_original, outline="red", width=3)
-        draw.text((bbox_original[0], bbox_original[1] - 10),
-                  f"{predicted_label} ({disease_confidence:.2f}%)", fill="red")
-
         # Save output image
         output_filename = f"output_{file.filename}"
         output_path = os.path.join(OUTPUT_DIR, output_filename)
@@ -180,4 +170,5 @@ def static_files(filename):
     return send_from_directory(OUTPUT_DIR, filename)
 
 if __name__ == '__main__':
-    app.run(debug=True, port=4000)
+    port = int(os.environ.get("PORT", 4000))  # Dynamically set port for Render
+    app.run(host='0.0.0.0', port=port, debug=True)
