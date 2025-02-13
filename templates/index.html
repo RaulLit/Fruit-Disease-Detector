@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fruit Disease Detector</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="font-roboto text-black-700 bg-cover bg-center bg-fixed relative" style="background-image: url('/static/images/WhatsApp Image 2025-01-21 at 7.18.21 PM.jpeg');">
+    
+    <!-- <div class="absolute inset-0 bg-black opacity-10 sm:opacity-10 md:opacity-10 lg:opacity-10 xl:opacity-40 -z-10"></div> -->
+
+
+    <header class="bg-green-500 text-white text-2xl font-bold uppercase tracking-wider py-5 text-center">
+        Fruit Disease Detector
+    </header>
+
+    <div class="max-w-2xl mx-auto mt-10 p-6 bg-white bg-opacity-80 rounded-3xl shadow-lg text-center">
+        <h1 class="text-2xl font-bold text-black mb-4">Upload or Capture Fruit Image</h1>
+
+        <form id="uploadForm" class="flex flex-col items-center space-y-5">
+            <select id="fruitType" required class="w-48 p-3 text-lg border-2 border-black rounded-xl cursor-pointer">
+                <option value="" disabled selected>Select Fruit 🍉</option>
+                <option value="mango">Mango 🥭</option>
+                <option value="strawberry">Strawberry 🍓</option>
+            </select>
+
+            <button type="button" id="cameraButton" onclick="toggleCamera()" class="bg-gray-200 w-48 py-3 border-2 border-black rounded-xl text-lg hover:bg-gray-400">
+                Start Camera 📷
+            </button>
+
+            <div>
+                <input type="file" id="imageInput" name="image" accept="image/*" required class="hidden">
+                <label for="imageInput" class="block bg-gray-200 text-center w-48 py-3 border-2 border-black rounded-xl text-lg cursor-pointer hover:bg-gray-400">
+                    Open Gallery 🖼️
+                </label>
+            </div>
+
+            <button type="button" id="uploadButton" class="bg-green-500 text-white w-48 py-3 border-2 border-black rounded-xl text-lg font-bold hover:bg-green-700">
+                Make Prediction 🤖
+            </button>
+        </form>
+
+        <div id="result-container" class="mt-6">
+            <div id="successMessage" class="text-green-600 font-bold hidden">Image uploaded and prediction made successfully!</div>
+            <h3 class="text-lg font-semibold text-black mt-3">Prediction Result:</h3>
+            <div id="predictionResult" class="text-black mt-2"></div>
+            <img id="output-image" class="w-96 h-72 object-cover border-2 border-gray-300 rounded-lg hidden mx-auto mt-4" alt="Input Image">
+        </div>
+
+        <video id="cameraPreview" class="w-96 max-w-full h-72 border-2 border-black rounded-lg hidden mx-auto mt-4" autoplay></video>
+
+        <div class="loader hidden mx-auto mt-4 border-4 border-gray-200 border-t-4 border-black rounded-full w-10 h-10 animate-spin" id="loader"></div>
+    </div>
+
+    <footer class="text-center text-white text-lg mt-40 py-4">
+        &copy; Fruit Disease AI Detection System
+    </footer>
+    
+
+    <script>
+        let stream;
+        let cameraStarted = false;
+
+        function toggleCamera() {
+            const videoElement = document.getElementById("cameraPreview");
+
+            if (!cameraStarted) {
+                navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } })
+                    .then(camStream => {
+                        stream = camStream;
+                        videoElement.srcObject = camStream;
+                        videoElement.classList.remove("hidden");
+                        document.getElementById("cameraButton").innerText = "Capture Image 📷";
+                        cameraStarted = true;
+                        document.getElementById("output-image").classList.add("hidden");
+                    })
+                    .catch(err => alert("Unable to access camera: " + err));
+            } else {
+                captureImage();
+            }
+        }
+
+        function captureImage() {
+            const videoElement = document.getElementById("cameraPreview");
+            const canvas = document.createElement("canvas");
+            const ctx = canvas.getContext("2d");
+
+            canvas.width = videoElement.clientWidth;
+            canvas.height = videoElement.clientHeight;
+
+            ctx.drawImage(videoElement, 0, 0, canvas.width, canvas.height);
+
+            canvas.toBlob(blob => {
+                if (blob) {
+                    document.getElementById("loader").classList.remove("hidden");
+
+                    const formData = new FormData();
+                    formData.append("image", blob, "captured_image.jpg");
+                    formData.append("fruit_type", document.getElementById("fruitType").value);
+
+                    fetch('/predict', { method: "POST", body: formData })
+                        .then(response => response.json())
+                        .then(data => {
+                            document.getElementById("loader").classList.add("hidden");
+                            if (data.error) {
+                                alert(data.error);
+                            } else {
+                                document.getElementById("predictionResult").innerHTML = `Disease: ${data.label} | Confidence: ${data.confidence}%`;
+                                const imageElement = document.getElementById("output-image");
+                                imageElement.src = URL.createObjectURL(blob);
+                                imageElement.classList.remove("hidden");
+                                imageElement.style.width = `${canvas.width}px`;
+                                imageElement.style.height = `${canvas.height}px`;
+                            }
+
+                            document.getElementById("successMessage").classList.remove("hidden");
+                            document.getElementById("successMessage").innerText = "Image captured and uploaded successfully!";
+                            videoElement.classList.add("hidden");
+                            setTimeout(stopCamera, 2000);
+                        })
+                        .catch(error => {
+                            document.getElementById("loader").classList.add("hidden");
+                            alert("An error occurred while processing the image.");
+                        });
+                } else {
+                    alert("Failed to capture image. Please try again.");
+                }
+            }, 'image/jpeg');
+        }
+
+        function stopCamera() {
+            const videoElement = document.getElementById("cameraPreview");
+            stream.getTracks().forEach(track => track.stop());
+            videoElement.srcObject = null;
+            document.getElementById("cameraButton").innerText = "Start Camera";
+            cameraStarted = false;
+        }
+
+        document.getElementById("imageInput").addEventListener("change", function () {
+            const file = this.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = e => {
+                    const imageElement = document.getElementById("output-image");
+                    imageElement.src = e.target.result;
+                    imageElement.classList.remove("hidden");
+                };
+                reader.readAsDataURL(file);
+                document.getElementById("uploadButton").classList.remove("hidden");
+                document.getElementById("cameraPreview").classList.add("hidden");
+            }
+        });
+
+        document.getElementById("uploadButton").addEventListener("click", function () {
+            const fileInput = document.getElementById("imageInput");
+            if (fileInput.files.length > 0) {
+                const file = fileInput.files[0];
+                const formData = new FormData();
+                formData.append("image", file);
+                formData.append("fruit_type", document.getElementById("fruitType").value);
+
+                document.getElementById("loader").classList.remove("hidden");
+
+                fetch('/predict', { method: "POST", body: formData })
+                    .then(response => response.json())
+                    .then(data => {
+                        document.getElementById("loader").classList.add("hidden");
+                        if (data.error) {
+                            alert(data.error);
+                        } else {
+                            document.getElementById("predictionResult").innerHTML = `Disease: ${data.label} | Confidence: ${data.confidence}%`;
+                            document.getElementById("output-image").src = URL.createObjectURL(file);
+                            document.getElementById("output-image").classList.remove("hidden");
+                        }
+                        document.getElementById("successMessage").classList.remove("hidden");
+                    })
+                    .catch(error => alert("An error occurred while processing the image."));
+            } else {
+                alert("Please select an image first.");
+            }
+        });
+    </script>
+</body>
+</html>
