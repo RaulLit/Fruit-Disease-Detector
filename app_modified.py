@@ -26,8 +26,8 @@ if not os.path.exists(OUTPUT_DIR):
 
 # Define the model paths and disease labels for different models
 MODEL_PATHS = {
-    "mango": r"Models\Mango.keras",
-    "strawberry": r"Models\Strawberry.keras"
+    "mango": r"Models/Mango.keras",
+    "strawberry": r"Models/Strawberry.keras"
 }
 
 DISEASE_LABELS = {
@@ -55,7 +55,7 @@ for model_type, model_path in MODEL_PATHS.items():
         raise RuntimeError(f"Failed to load model for {model_type}: {e}")
 
 # Load YOLO model using CPU
-yolo_model = YOLO(r'Models\best.pt')
+yolo_model = YOLO(r'Models/best.pt')
 yolo_model.to('cpu')  # Ensure YOLO model is on CPU
 
 # List of valid fruit names
