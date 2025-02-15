@@ -1,0 +1,37 @@
+# Use Python 3.9 slim as base image
+FROM python:3.9-slim
+
+# Install system dependencies required for OpenCV and other packages
+RUN apt-get update && apt-get install -y \
+    libgl1-mesa-glx \
+    libglib2.0-0 \
+    libsm6 \
+    libxext6 \
+    libxrender-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+# Set the working directory
+WORKDIR /app
+
+# Copy requirements file
+COPY requirements.txt .
+
+# Install Python dependencies
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Create directory for static files
+RUN mkdir -p static
+
+# Copy the application code and models
+COPY . .
+
+# Set environment variables
+ENV PYTHONUNBUFFERED=1
+ENV CUDA_VISIBLE_DEVICES=-1
+ENV PORT=8000
+
+# Make port 8000 available
+EXPOSE 8000
+
+# Run gunicorn with timeout set to accommodate ML processing
+CMD ["gunicorn", "--bind", "0.0.0.0:8000", "--workers", "1", "--timeout", "300", "--threads", "4", "app_modified:app"]
