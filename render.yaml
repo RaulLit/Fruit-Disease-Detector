@@ -2,4 +2,4 @@ services:
   - type: web
     env:
       - key: PORT
-        value: 4000
+        value: 8000

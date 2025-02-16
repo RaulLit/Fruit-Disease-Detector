@@ -1,4 +1,4 @@
-# Use Python 3.9 slim as base image
+# Use Python 3.10 slim as base image
 FROM python:3.10.0-slim
 
 # Install system dependencies required for OpenCV and other packages
@@ -26,8 +26,6 @@ RUN mkdir -p static
 COPY . .
 
 # Set environment variables
-ENV PYTHONUNBUFFERED=1
-ENV CUDA_VISIBLE_DEVICES=-1
 ENV PORT=8000
 
 # Make port 8000 available
