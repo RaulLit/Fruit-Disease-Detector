@@ -1,5 +1,13 @@
 services:
   - type: web
-    env:
+    name: Fruit Disease Detector
+    env: docker
+    buildCommand: docker build -t project .
+    startCommand: docker run -p 8000:8000 project
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.10.0
       - key: PORT
         value: 8000
+    healthCheckPath: /
+    autoDeploy: true
