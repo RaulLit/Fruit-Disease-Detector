@@ -4,9 +4,9 @@ services:
   web:
     build: ./
     ports:
-      - "10000:10000"
+      - "8000:8000"
     environment:
-      - PORT=10000
+      - PORT=8000
     deploy:
       resources:
         limits:
